@@ -1,14 +1,14 @@
-import React, { useRef, useEffect, useState } from 'react';
-import gsap from 'gsap';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { motion, AnimatePresence, stagger } from 'framer-motion';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { MeshWobbleMaterial, OrbitControls } from '@react-three/drei';
 
-// 3D Cube Component for R3F
+// 3D Cube Component (unchanged)
 const Cube = ({ isHovered }) => {
     const meshRef = useRef();
 
-    useFrame((state) => {
+    useFrame(() => {
         if (isHovered) {
             meshRef.current.rotation.x += 0.02;
             meshRef.current.rotation.y += 0.03;
@@ -19,13 +19,12 @@ const Cube = ({ isHovered }) => {
     });
 
     return (
-        <mesh ref={meshRef} >
+        <mesh ref={meshRef}>
             <boxGeometry args={[3, 3, 3]} />
             <MeshWobbleMaterial
                 color="#4f46e5"
                 factor={isHovered ? 1 : 0.5}
                 speed={isHovered ? 2 : 1}
-                //  wireframe={true}
                 wireframe={isHovered}
             />
         </mesh>
@@ -33,18 +32,12 @@ const Cube = ({ isHovered }) => {
 };
 
 const AnimatedNavbar = () => {
-    const navRef = useRef(null);
-    const logoRef = useRef(null);
-    const menuItemsRef = useRef([]);
-    const underlineRef = useRef(null);
-    const mobileMenuRef = useRef(null);
-    const mobileItemsRef = useRef([]);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [activeIndex, setActiveIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
     const location = useLocation();
+    const underlineRef = useRef(null);
+    const menuItemsRef = useRef([]);
 
-    // Nav items with improved color scheme
     const navItems = [
         { name: 'Home', path: '/', color: '#4f46e5' },
         { name: 'Shop', path: '/shop', color: '#10b981' },
@@ -53,213 +46,46 @@ const AnimatedNavbar = () => {
         { name: 'Contact', path: '/contact', color: '#8b5cf6' }
     ];
 
-    // Set active index based on current route
-    useEffect(() => {
-        const index = navItems.findIndex(item => item.path === location.pathname);
-        if (index !== -1) setActiveIndex(index);
-    }, [location]);
+    const activeIndex = navItems.findIndex(item => item.path === location.pathname);
+    const logoText = "MISFIT.";
 
-    // Initialize animations
+    // Update underline position
     useEffect(() => {
-        const tl = gsap.timeline();
-
-        // Prevent animations on page refresh
-        if (sessionStorage.getItem('navbarInitialized')) {
-            positionUnderline();
-            return;
+        if (window.innerWidth > 1024 && underlineRef.current && menuItemsRef.current[activeIndex]) {
+            const activeItem = menuItemsRef.current[activeIndex];
+            underlineRef.current.style.left = `${activeItem.offsetLeft}px`;
+            underlineRef.current.style.width = `${activeItem.offsetWidth}px`;
+            underlineRef.current.style.backgroundColor = navItems[activeIndex].color;
         }
-        sessionStorage.setItem('navbarInitialized', 'true');
-
-        // Background animation
-        tl.from(navRef.current, {
-            y: -80,
-            opacity: 0,
-            duration: 0.8,
-            ease: 'power3.out'
-        });
-
-        // Logo animation
-        tl.from(logoRef.current, {
-            y: -30,
-            opacity: 0,
-            duration: 0.8,
-            ease: 'back.out(1.7)',
-            delay: 0.2
-        }, '<0.2');
-
-        // Menu items animation (staggered)
-        tl.from(menuItemsRef.current, {
-            y: -20,
-            opacity: 0,
-            duration: 1,
-            stagger: 0.20,
-            ease: 'back.out(1.7)',
-            delay: 0.4
-        }, '<0.1');
-
-        // Underline animation
-        tl.from(underlineRef.current, {
-            scaleX: 0,
-            duration: 1,
-            ease: 'elastic.out(1, 0.5)',
-            delay: 0.8
-        });
-
-        return () => tl.kill();
-    }, []);
-
-    // Position underline based on active item
-    const positionUnderline = () => {
-        if (window.innerWidth <= 1024 || !underlineRef.current) return;
-
-        const activeItem = menuItemsRef.current[activeIndex];
-        if (!activeItem) return;
-
-        gsap.to(underlineRef.current, {
-            x: activeItem.offsetLeft,
-            width: activeItem.offsetWidth,
-            backgroundColor: navItems[activeIndex].color,
-            duration: 0.6,
-            ease: 'elastic.out(1, 0.5)'
-        });
-    };
-
-    // Mobile menu toggle animation
-    useEffect(() => {
-        const mm = gsap.matchMedia();
-
-        mm.add("(max-width: 1024px)", () => {
-            // Create timelines but don't play them yet
-            const openTl = gsap.timeline({ paused: true });
-            const closeTl = gsap.timeline({ paused: true });
-
-            // Open animation setup
-            openTl
-                .to(mobileMenuRef.current, {
-                    x: 0,
-                    opacity: 1,
-                    duration: 0.5,
-                    ease: 'power3.out',
-                    onStart: () => {
-                        document.body.style.overflow = 'hidden';
-                        // Make sure items are visible before animating
-                        gsap.set(mobileItemsRef.current, {
-                            y: 30,
-                            opacity: 0,
-                            display: 'block'
-                        });
-                    }
-                })
-                .fromTo(mobileItemsRef.current,
-                    { y: 30, opacity: 0 },
-                    {
-                        y: 0,
-                        opacity: 1,
-                        duration: 0.6,
-                        stagger: 0.1,
-                        ease: 'back.out(1.7)',
-                        onStart: () => {
-                            mobileItemsRef.current.forEach((item, idx) => {
-                                if (item) {
-                                    gsap.set(item, { color: navItems[idx].color });
-                                }
-                            });
-                        }
-                    },
-                    0.2
-                );
-
-            // Close animation setup
-            closeTl
-                .to(mobileItemsRef.current, {
-                    y: -30,
-                    opacity: 0,
-                    duration: 0.4,
-                    stagger: 0.05,
-                    ease: 'power3.in'
-                })
-                .to(mobileMenuRef.current, {
-                    x: '100%',
-                    opacity: 0,
-                    duration: 0.4,
-                    ease: 'power3.in',
-                    onComplete: () => {
-                        document.body.style.overflow = '';
-                    }
-                }, 0.1);
-
-            // Play the appropriate timeline based on menu state
-            if (isMenuOpen) {
-                closeTl.progress(0).kill();
-                openTl.play();
-            } else {
-                openTl.progress(0).kill();
-                closeTl.play();
-            }
-
-            return () => {
-                openTl.kill();
-                closeTl.kill();
-                mm.revert();
-            };
-        });
-    }, [isMenuOpen, location.pathname]); // Added location.pathname to dependency array
+    }, [activeIndex, location.pathname]);
 
     // Close menu on route change
     useEffect(() => {
-        const handleRouteChange = () => {
-            if (isMenuOpen) {
-                const mm = gsap.matchMedia();
-
-                mm.add("(max-width: 1024px)", () => {
-                    gsap.to(mobileItemsRef.current, {
-                        y: -30,
-                        opacity: 0,
-                        duration: 0.3,
-                        stagger: 0.05,
-                        ease: 'power3.in'
-                    });
-
-                    gsap.to(mobileMenuRef.current, {
-                        x: '100%',
-                        opacity: 0,
-                        duration: 0.3,
-                        ease: 'power3.in',
-                        onComplete: () => {
-                            document.body.style.overflow = '';
-                            setIsMenuOpen(false);
-                        }
-                    });
-
-                    return () => mm.revert();
-                });
-            }
-        };
-
-        handleRouteChange();
+        setIsMenuOpen(false);
     }, [location.pathname]);
 
-    // Update underline position on route change
+    // Prevent body scroll when mobile menu is open
     useEffect(() => {
-        const handleResize = () => positionUnderline();
-
-        positionUnderline();
-        window.addEventListener('resize', handleResize);
-
+        if (isMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
         return () => {
-            window.removeEventListener('resize', handleResize);
+            document.body.style.overflow = '';
         };
-    }, [activeIndex, location.pathname]);
-
+    }, [isMenuOpen]);
 
     return (
-        <header
-            ref={navRef}
+        <motion.header
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="fixed w-full bg-white/95 backdrop-blur-md z-50 border-b border-gray-100 shadow-sm"
         >
             <div className="container mx-auto px-6 py-3">
                 <div className="flex justify-between items-center">
-                    {/* Logo with R3F 3D Cube */}
+                    {/* Logo with 3D Cube and animated text */}
                     <div className="flex items-center space-x-3">
                         <div
                             className="w-8 h-8"
@@ -273,14 +99,58 @@ const AnimatedNavbar = () => {
                                 <OrbitControls enableZoom={false} enablePan={false} />
                             </Canvas>
                         </div>
+
                         <Link
-                            ref={logoRef}
                             to="/"
                             className="text-2xl font-bold tracking-tight text-gray-900 hover:text-indigo-600 transition-colors"
                             onMouseEnter={() => setIsHovered(true)}
                             onMouseLeave={() => setIsHovered(false)}
                         >
-                            MISFIT.
+                            <motion.div
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    visible: {
+                                        opacity: 1,
+                                        transition: {
+                                            staggerChildren: 0.1,
+                                            delayChildren: 0.3
+                                        }
+                                    }
+                                }}
+                                className="flex"
+                            >
+                                {logoText.split("").map((char, i) => (
+                                    <motion.span
+                                        key={i}
+                                        variants={{
+                                            hidden: {
+                                                y: -20,
+                                                opacity: 0,
+                                                rotate: -10
+                                            },
+                                            visible: {
+                                                y: 0,
+                                                opacity: 1,
+                                                rotate: 0,
+                                                transition: {
+                                                    type: "spring",
+                                                    damping: 12,
+                                                    stiffness: 200
+                                                }
+                                            }
+                                        }}
+                                        whileHover={{
+                                            y: -5,
+                                            rotate: [0, 10, -10, 0],
+                                            transition: { duration: 0.5 }
+                                        }}
+                                    >
+                                        {char}
+                                    </motion.span>
+                                ))}
+                            </motion.div>
                         </Link>
                     </div>
 
@@ -288,64 +158,139 @@ const AnimatedNavbar = () => {
                     <nav className="hidden lg:flex relative">
                         <div className="flex space-x-6">
                             {navItems.map((item, index) => (
-                                <Link
+                                <motion.div
                                     key={item.path}
-                                    ref={el => menuItemsRef.current[index] = el}
-                                    to={item.path}
-                                    className={`relative px-3 py-2 text-gray-700 hover:text-[${item.color}] transition-colors font-medium
-                                        ${location.pathname === item.path ? `text-[${item.color}]` : ''}`}
-                                    onMouseEnter={() => setActiveIndex(index)}
+                                    initial={{ y: -20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{
+                                        duration: 1,
+                                        delay: 0.4 + index * 0.2,
+                                        ease: [0.34, 1.56, 0.64, 1]
+                                    }}
                                 >
-                                    {item.name}
-                                </Link>
+                                    <Link
+                                        ref={el => menuItemsRef.current[index] = el}
+                                        to={item.path}
+                                        className={`relative px-3 py-2 text-gray-700 hover:text-[${item.color}] transition-colors font-medium
+                      ${location.pathname === item.path ? `text-[${item.color}]` : ''}`}
+                                        onMouseEnter={() => {
+                                            if (underlineRef.current) {
+                                                underlineRef.current.style.left = `${menuItemsRef.current[index].offsetLeft}px`;
+                                                underlineRef.current.style.width = `${menuItemsRef.current[index].offsetWidth}px`;
+                                                underlineRef.current.style.backgroundColor = item.color;
+                                            }
+                                        }}
+                                        onMouseLeave={() => {
+                                            if (underlineRef.current && activeIndex >= 0) {
+                                                const activeItem = menuItemsRef.current[activeIndex];
+                                                underlineRef.current.style.left = `${activeItem.offsetLeft}px`;
+                                                underlineRef.current.style.width = `${activeItem.offsetWidth}px`;
+                                                underlineRef.current.style.backgroundColor = navItems[activeIndex].color;
+                                            }
+                                        }}
+                                    >
+                                        {item.name}
+                                    </Link>
+                                </motion.div>
                             ))}
                         </div>
-                        <div
+                        <motion.div
                             ref={underlineRef}
-                            className="absolute bottom-0 left-0 h-0.5 rounded-full"
-                            style={{ backgroundColor: navItems[activeIndex].color, width: '50px' }}
+                            initial={{ scaleX: 0 }}
+                            animate={{ scaleX: 1 }}
+                            transition={{
+                                duration: 1,
+                                delay: 0.8,
+                                ease: [0.12, 0, 0.39, 0]
+                            }}
+                            className="absolute bottom-0 h-0.5 rounded-full"
+                            style={{ backgroundColor: navItems[activeIndex]?.color || '#4f46e5' }}
                         />
                     </nav>
 
-                    {/* Mobile Menu Button - Improved */}
-                    <button
+                    {/* Mobile Menu Button */}
+                    <motion.button
                         className="lg:hidden focus:outline-none p-2 group"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         aria-label="Toggle menu"
+                        whileTap={{ scale: 0.95 }}
                     >
                         <div className="relative w-8 h-8 flex items-center justify-center">
-                            <span className={`absolute block w-6 h-0.5 bg-gray-900 transition-all duration-300 ${isMenuOpen ? 'rotate-45 top-1/2 -translate-y-1/2' : 'top-1/3 -translate-y-1/2'}`}></span>
-                            <span className={`absolute block w-6 h-0.5 bg-gray-900 transition-all duration-300 ${isMenuOpen ? 'opacity-0' : 'top-1/2 -translate-y-1/2'}`}></span>
-                            <span className={`absolute block w-6 h-0.5 bg-gray-900 transition-all duration-300 ${isMenuOpen ? '-rotate-45 top-1/2 -translate-y-1/2' : 'top-2/3 -translate-y-1/2'}`}></span>
+                            <motion.span
+                                className="absolute block w-6 h-0.5 bg-gray-900"
+                                animate={isMenuOpen ? {
+                                    rotate: 45,
+                                    y: 0,
+                                    opacity: 1
+                                } : {
+                                    rotate: 0,
+                                    y: -8,
+                                    opacity: 1
+                                }}
+                            />
+                            <motion.span
+                                className="absolute block w-6 h-0.5 bg-gray-900"
+                                animate={isMenuOpen ? {
+                                    opacity: 0
+                                } : {
+                                    opacity: 1
+                                }}
+                            />
+                            <motion.span
+                                className="absolute block w-6 h-0.5 bg-gray-900"
+                                animate={isMenuOpen ? {
+                                    rotate: -45,
+                                    y: 0,
+                                    opacity: 1
+                                } : {
+                                    rotate: 0,
+                                    y: 8,
+                                    opacity: 1
+                                }}
+                            />
                         </div>
-                    </button>
+                    </motion.button>
                 </div>
 
                 {/* Mobile Menu */}
-                <div
-                    ref={mobileMenuRef}
-                    className="lg:hidden fixed top-0 left-0 w-full h-screen bg-white/95 backdrop-blur-sm z-40 transform translate-x-full opacity-0 pt-20 px-6"
-                >
-                    <div className="h-full flex flex-col justify-center space-y-6">
-                        {navItems.map((item, index) => (
-                            <Link
-                                key={item.path}
-                                ref={el => mobileItemsRef.current[index] = el}
-                                to={item.path}
-                                className={`text-4xl md:text-5xl font-bold py-4 transition-all duration-300 hover:pl-6
-            ${location.pathname === item.path ? `text-[${item.color}]` : 'text-gray-800'}`}
-                                onClick={() => setIsMenuOpen(false)}
-                                style={{ color: location.pathname === item.path ? item.color : '' }}
-                            >
-                                {item.name}
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-
-
+                <AnimatePresence>
+                    {isMenuOpen && (
+                        <motion.div
+                            initial={{ x: '100%', opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: '100%', opacity: 0 }}
+                            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                            className="lg:hidden fixed top-0 left-0 w-full h-screen bg-white/95 backdrop-blur-sm z-40 pt-20 px-6"
+                        >
+                            <div className="h-full flex flex-col justify-center space-y-6">
+                                {navItems.map((item, index) => (
+                                    <motion.div
+                                        key={item.path}
+                                        initial={{ y: 30, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{
+                                            duration: 0.6,
+                                            delay: 0.1 + index * 0.1,
+                                            ease: [0.34, 1.56, 0.64, 1]
+                                        }}
+                                    >
+                                        <Link
+                                            to={item.path}
+                                            className={`text-4xl md:text-5xl font-bold py-4 block transition-all duration-300 hover:pl-6
+                        ${location.pathname === item.path ? `text-[${item.color}]` : 'text-gray-800'}`}
+                                            onClick={() => setIsMenuOpen(false)}
+                                            style={{ color: location.pathname === item.path ? item.color : '' }}
+                                        >
+                                            {item.name}
+                                        </Link>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
-        </header>
+        </motion.header>
     );
 };
 

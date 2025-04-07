@@ -1,87 +1,208 @@
 import React, { useEffect, useRef } from "react";
-import gsap from "gsap";
+import { motion, useAnimation, useInView, AnimatePresence } from "framer-motion";
+import { useMediaQuery } from "react-responsive";
 
-function Content({ activeData }) {
-    const buttonRef = useRef(null);
-    const headingRef = useRef(null);
-    const subHeadingRef = useRef(null);
-    const textRef = useRef(null);
-    const textElements = useRef([]);
+const Content = ({ activeData }) => {
+    const controls = useAnimation();
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: false, amount: 0.3 });
+    const isMobile = useMediaQuery({ query: '(max-width: 768px)' });
 
-    useEffect(() => {
-        // Button animation
-        if (buttonRef.current) {
-            gsap.to(buttonRef.current, {
-                color: activeData.buttonColor.text,
-                backgroundColor: activeData.buttonColor.background,
-                duration: 0.5,
-                ease: "power3.inOut",
-            });
-        }
-
-        // Text color animations
-        const textNodes = [headingRef.current, subHeadingRef.current, textRef.current];
-        textNodes.forEach(el => {
-            if (el) {
-                gsap.to(el, {
-                    color: activeData.headingColor,
-                    duration: 0.5,
-                    ease: "power3.inOut",
-                });
+    // Text animation variants
+    const letterVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: (i) => ({
+            opacity: 1,
+            y: 0,
+            transition: {
+                delay: i * 0.03,
+                type: "spring",
+                damping: 12,
+                stiffness: 100
             }
-        });
+        })
+    };
 
-        // Entrance animation
-        gsap.from(textElements.current, {
-            y: 100,
-            opacity: 0,
-            duration: 0.8,
-            ease: "power3.out",
-            stagger: 0.15
-        });
+    const wordVariants = {
+        hidden: {},
+        visible: {}
+    };
 
-    }, [activeData]);
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+                when: "beforeChildren"
+            }
+        }
+    };
 
-    // Store all animatable elements
+    const buttonVariants = {
+        hidden: { scale: 0.9, opacity: 0 },
+        visible: {
+            scale: 1,
+            opacity: 1,
+            transition: {
+                type: "spring",
+                stiffness: 400,
+                damping: 10
+            }
+        },
+        hover: {
+            scale: 1.05,
+            boxShadow: "0px 5px 15px rgba(0,0,0,0.1)"
+        },
+        tap: {
+            scale: 0.95
+        }
+    };
+
+    // Handle scroll animations
     useEffect(() => {
-        textElements.current = [
-            headingRef.current,
-            subHeadingRef.current,
-            textRef.current,
-            buttonRef.current
-        ].filter(Boolean);
-    }, []);
+        if (isInView) {
+            controls.start("visible");
+        } else {
+            controls.start("hidden");
+        }
+    }, [isInView, controls]);
+
+    // Split text into words and letters for animation
+    const splitText = (text) => {
+        return text.split(" ").map((word, wordIndex) => (
+            <motion.span
+                key={`word-${wordIndex}`}
+                className="inline-block mr-2"
+                variants={wordVariants}
+                initial="hidden"
+                animate={controls}
+            >
+                {word.split("").map((letter, letterIndex) => (
+                    <motion.span
+                        key={`letter-${wordIndex}-${letterIndex}`}
+                        className="inline-block"
+                        variants={letterVariants}
+                        custom={letterIndex}
+                        whileHover={{ y: -5 }}
+                    >
+                        {letter}
+                    </motion.span>
+                ))}
+            </motion.span>
+        ));
+    };
 
     return (
-        <div className="select-none w-full h-2/5 flex justify-center items-center lg:w-1/2 lg:h-full lg:justify-end">
+        <motion.div
+            ref={ref}
+            className="select-none w-full h-2/5 flex justify-center items-center lg:w-1/2 lg:h-full lg:justify-end"
+            initial="hidden"
+            animate={controls}
+            variants={containerVariants}
+        >
             <div className="flex justify-start flex-col items-start w-2/3">
-                {/* heading */}
-                <h1 className="text-left text-5xl font-bold mb-1 w-full relative p-1 overflow-hidden md:text-[7vw] md:mb-2">
-                    <span ref={headingRef} className=" block">{activeData.heading}</span>
-                </h1>
+                {/* Animated Heading */}
+                <motion.h1
+                    className="text-left text-5xl font-bold mb-1 w-full p-1 overflow-hidden md:text-[7vw] md:mb-2"
+                    style={{ color: activeData.headingColor }}
+                    variants={containerVariants}
+                >
+                    {splitText(activeData.heading)}
+                </motion.h1>
 
-                {/* sub heading */}
-                <h6 className="text-left text-2xl font-regular mb-6 w-full p-1 overflow-hidden md:text-4xl">
-                    <span ref={subHeadingRef} className="block">{activeData.subHeading}</span>
-                </h6>
+                {/* Animated Subheading */}
+                <motion.h6
+                    className="text-left text-2xl font-regular mb-6 w-full p-1 overflow-hidden md:text-4xl"
+                    style={{ color: activeData.headingColor }}
+                    variants={containerVariants}
+                >
+                    {splitText(activeData.subHeading)}
+                </motion.h6>
 
-                {/* text */}
-                <div ref={textRef} className="w-full text-xs font-medium text-left mb-8 p-1 overflow-hidden md:text-base md:mb-12">
-                    {activeData.text}
-                </div>
-
-                {/* button */}
-                <div className="relative overflow-hidden p-4">
-                    <button
-                        ref={buttonRef}
-                        className="cursor-pointer rounded-2xl outline-none px-8 py-2 font-medium bg-[#4A6E6A] md:px-10 md:py-4"
+                {/* Animated Paragraph */}
+                <motion.div
+                    className="w-full text-xs font-medium text-left mb-8 p-1 overflow-hidden md:text-base md:mb-12"
+                    style={{ color: activeData.headingColor }}
+                    variants={containerVariants}
+                >
+                    <motion.p
+                        variants={{
+                            hidden: { opacity: 0, x: -20 },
+                            visible: {
+                                opacity: 1,
+                                x: 0,
+                                transition: {
+                                    staggerChildren: 0.02,
+                                    delayChildren: 0.2
+                                }
+                            }
+                        }}
                     >
-                        Shop Now
-                    </button>
-                </div>
+                        {activeData.text.split("").map((char, index) => (
+                            <motion.span
+                                key={`char-${index}`}
+                                className="inline-block"
+                                variants={letterVariants}
+                                custom={index}
+                                whileHover={{
+                                    y: -3,
+                                    color: activeData.buttonColor.background
+                                }}
+                            >
+                                {char}
+                            </motion.span>
+                        ))}
+                    </motion.p>
+                </motion.div>
+
+                {/* Animated Button */}
+                <motion.div
+                    className="relative overflow-hidden p-4"
+                    variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: {
+                            opacity: 1,
+                            y: 0,
+                            transition: {
+                                delay: 0.5,
+                                type: "spring"
+                            }
+                        }
+                    }}
+                >
+                    <motion.button
+                        className="cursor-pointer rounded-2xl outline-none px-8 py-2 font-medium md:px-10 md:py-4 relative overflow-hidden"
+                        style={{
+                            color: activeData.buttonColor.text,
+                            backgroundColor: activeData.buttonColor.background
+                        }}
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
+                    >
+                        <AnimatePresence mode="wait">
+                            <motion.span
+                                key={activeData.buttonColor.background}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="relative z-10"
+                            >
+                                Shop Now
+                            </motion.span>
+                        </AnimatePresence>
+                        <motion.span
+                            className="absolute inset-0 bg-black/10 opacity-0"
+                            whileHover={{ opacity: 1 }}
+                            transition={{ duration: 0.2 }}
+                        />
+                    </motion.button>
+                </motion.div>
             </div>
-        </div>
-    )
-}
+        </motion.div>
+    );
+};
 
 export default Content;
