@@ -6,7 +6,7 @@ import Banner from './layout/Index'
 function App() {
 
   return (
-    <div className='app'>
+    <div className='App'>
       <Banner />
     </div>
   )
