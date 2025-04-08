@@ -77,6 +77,58 @@ class Canvas extends React.Component {
         this.renderer.outputEncoding = THREE.sRGBEncoding;
         this.renderer.shadowMap.enabled = true;
 
+        // add three-D model & lighting 
+        this.loadHDR();
+        this.addModel();
+        window.addEventListener('resize', this.resize);
+
+        const render = () => {
+            this.controls.update();
+            this.renderer.render(this.scene, this.camera);
+            window.requestAnimationFrame(render);
+        };
+        render();
+    };
+
+    // add lighting 
+    loadHDR = () => {
+        new RGBELoader(this.manager)
+            .setDataType(THREE.HalfFloatType)
+            .load('default.hdr', (texture) => {
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+
+                texture.mapping = THREE.EquirectangularReflectionMapping;
+                texture.needsUpdate = true;
+                // this.scene.background = texture;
+                this.scene.environment = texture;
+                texture.dispose();
+            });
+    };
+
+    addModel = () => {
+        const THREE_PATH = `https://unpkg.com/three@0.${THREE.REVISION}.x`;
+        const DRACO_LOADER = new DRACOLoader(this.manager).setDecoderPath(
+            `${THREE_PATH}/examples/js/libs/draco/gltf/`
+        );
+
+        const chair = 'bag.glb';
+        const GLtfLoader = new GLTFLoader(this.manager).setDRACOLoader(
+            DRACO_LOADER
+        );
+        GLtfLoader.load(chair, (gltf) => {
+            gltf.scene.position.set(0, -30, 0); // position
+            gltf.scene.traverse(function (child) {
+                if (child instanceof THREE.Mesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    child.material.needsUpdate = true;
+                }
+            });
+            this.scene.add(gltf.scene);
+        });
+
+
     }
     render() {
         const { activeData, swatchData, handleSwatchClick, condition } = this.props;
