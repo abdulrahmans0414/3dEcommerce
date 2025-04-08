@@ -10,11 +10,23 @@ import gsap from 'gsap';
 class Canvas extends React.Component {
     constructor(props) {
         super(props);
+        this.state = {
+            selectedMesh: {},
+            currentScene: null,
+        };
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        const { activeData } = this.props;
+        if (prevProps.activeData !== activeData) {
+            this.applyMaterial(activeData);
+        }
     }
 
     componentDidMount() {
         this.InitialSetup();
     }
+
 
     InitialSetup = () => {
         const { handleLoading } = this.props;
@@ -136,6 +148,29 @@ class Canvas extends React.Component {
             });
             this.scene.add(gltf.scene);
         });
+    }
+
+    // applay swatch to the model
+    applyMaterial = (data) => {
+        this.scene.traverse((element) => {
+            if (element.isMesh) {
+                Object.entries(data.itemList).forEach((mesh) => {
+                    if (mesh[0] === element.name) {
+                        var value = new THREE.Color(mesh[1].color).convertSRGBToLinear();
+
+                        gsap.to(element.material.color, {
+                            r: value.r,
+                            g: value.g,
+                            b: value.b,
+                            ease: 'power3.inOut',
+                            duration: 0.8,
+                        });
+                        element.material.needsUpdate = true;
+                    }
+                });
+            }
+        });
+
 
 
     }
