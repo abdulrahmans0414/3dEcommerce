@@ -4,6 +4,7 @@ import gsap from "gsap";
 import { data } from "../data";
 import Content from "./Content";
 import Canvas from "./Canvas";
+import { LoadingAnimation } from '../components';
 
 
 
@@ -11,6 +12,8 @@ function Banner() {
 
     const banner = useRef(null);
     const logoRef = useRef(null);
+
+    const [isLoading, setIsLoading] = useState(true);
     const [activeData, setActiveData] = useState(data[0])
 
     // Memoize the click handler to prevent unnecessary re-renders
@@ -19,6 +22,10 @@ function Banner() {
             setActiveData(item);
         }
     }, [activeData.id]);
+
+    const handleLoading = () => {
+        setIsLoading(false);
+    };
 
 
     useEffect(() => {
@@ -48,6 +55,7 @@ function Banner() {
             ref={banner}
             className="w-screen h-screen relative "
         >
+            {isLoading ? <LoadingAnimation /> : null}
 
             {/* logo */}
             {/* <div
@@ -64,6 +72,7 @@ function Banner() {
                     activeData={activeData}
                     swatchData={data}
                     handleSwatchClick={handleSwatchClick}
+                    handleLoading={handleLoading}
                 />
 
                 <Content
