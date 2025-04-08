@@ -171,6 +171,11 @@ class Canvas extends React.Component {
             }
         });
 
+        gsap.to('.highlight', {
+            backgroundColor: data.buttonColor.background,
+            ease: 'power3.inOut',
+            duration: 0.8,
+        });
 
 
     }
