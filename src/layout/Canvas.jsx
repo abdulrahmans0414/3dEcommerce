@@ -90,6 +90,15 @@ class Canvas extends React.Component {
         render();
     };
 
+    // resize 
+    resize = () => {
+        this.sizes.width = this.container.offsetWidth;
+        this.sizes.height = this.container.offsetHeight;
+        this.renderer.setSize(this.sizes.width, this.sizes.height);
+        this.camera.aspect = this.sizes.width / this.sizes.height;
+        this.camera.updateProjectionMatrix();
+    };
+
     // add lighting 
     loadHDR = () => {
         new RGBELoader(this.manager)
